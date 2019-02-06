@@ -96,6 +96,12 @@ export default function ngReduxProvider() {
     // compose enhancers with middleware and create store.
     const store = createStore(_reducer, _initialState, compose(middlewares, ...resolvedStoreEnhancer));
 
+    // terradatum specific: we needed to add this lifecycle hook for middleware that requires 
+    // that action be taken sometime after the middleware has been added to the redux store.
+    resolvedMiddleware.forEach(mw => {
+      if(mw.finalize) mw.finalize();
+    });
+
     const mergedStore = assign({}, store, { connect: Connector(store) });
 
     if (_providedStore) wrapStore(_providedStore, mergedStore);
