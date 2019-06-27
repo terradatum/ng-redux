@@ -1,3 +1,7 @@
+## Why is this fork needed at Terradatum?
+
+At terradatum we use this fork so that it can be used with redux 4.x and redux-observable 4.x.x.. in aergo-client. You will see in aergo-client's package.json that this repo is directly referenced. Perhaps with time ng-redux will offer the support we need and we can switch back to using that and can delete this fork.
+
 # ng-redux
 ###### Angular bindings for [Redux](https://github.com/gaearon/redux).
 
