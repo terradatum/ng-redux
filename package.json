@@ -23,7 +23,7 @@
     "versionbump": "standard-version",
     "prepublish": "npm run clean && npm test && npm run build",
     "prerelease": "npm run prepublish",
-    "test": "cross-env NODE_ENV=test mocha --compilers js:babel-register --recursive"
+    "test": "cross-env NODE_ENV=test mocha --require babel-register --recursive"
   },
   "repository": {
     "type": "git",
