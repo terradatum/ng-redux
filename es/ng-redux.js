@@ -59,11 +59,11 @@ function Connector(store) {
 
     var finalMapStateToTarget = mapStateToTarget || defaultMapStateToTarget;
 
-    var finalMapDispatchToTarget = isPlainObject(mapDispatchToTarget) ? wrapActionCreators(mapDispatchToTarget) : mapDispatchToTarget || defaultMapDispatchToTarget;
+    var finalMapDispatchToTarget = isObject(mapDispatchToTarget) && !isFunction(mapDispatchToTarget) ? wrapActionCreators(mapDispatchToTarget) : mapDispatchToTarget || defaultMapDispatchToTarget;
 
     invariant(isFunction(finalMapStateToTarget), 'mapStateToTarget must be a Function. Instead received %s.', finalMapStateToTarget);
 
-    invariant(isPlainObject(finalMapDispatchToTarget) || isFunction(finalMapDispatchToTarget), 'mapDispatchToTarget must be a plain Object or a Function. Instead received %s.', finalMapDispatchToTarget);
+    invariant(isObject(finalMapDispatchToTarget) || isFunction(finalMapDispatchToTarget), 'mapDispatchToTarget must be a plain Object or a Function. Instead received %s.', finalMapDispatchToTarget);
 
     var slice = getStateSlice(store.getState(), finalMapStateToTarget, false);
     var isFactory = isFunction(slice);
@@ -179,6 +179,7 @@ function ngReduxProvider() {
   var _initialState = undefined;
   var _reducerIsObject = undefined;
   var _providedStore = undefined;
+  var _storeCreator = undefined;
 
   this.provideStore = function (store) {
     var middlewares = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
@@ -190,6 +191,10 @@ function ngReduxProvider() {
     };
     _storeEnhancers = storeEnhancers;
     _middlewares = [].concat(_toConsumableArray(middlewares), [providedStoreMiddleware(store)]);
+  };
+
+  this.createStore = function (storeCreator) {
+    _storeCreator = storeCreator;
   };
 
   this.createStoreWith = function (reducer, middlewares, storeEnhancers, initialState) {
@@ -241,11 +246,15 @@ function ngReduxProvider() {
     // digestMiddleware needs to be the last one.
     resolvedMiddleware.push(digestMiddleware($injector.get('$rootScope'), _this.config.debounce));
 
-    // combine middleware into a store enhancer.
-    var middlewares = applyMiddleware.apply(undefined, _toConsumableArray(resolvedMiddleware));
-
-    // compose enhancers with middleware and create store.
-    var store = createStore(_reducer, _initialState, compose.apply(undefined, [middlewares].concat(_toConsumableArray(resolvedStoreEnhancer))));
+    var store = void 0;
+    if (_storeCreator) {
+      store = _storeCreator(resolvedMiddleware, resolvedStoreEnhancer);
+    } else {
+      // combine middleware into a store enhancer.
+      var middlewares = applyMiddleware.apply(undefined, _toConsumableArray(resolvedMiddleware));
+      // compose enhancers with middleware and create store.
+      store = createStore(_reducer, _initialState, compose.apply(undefined, [middlewares].concat(_toConsumableArray(resolvedStoreEnhancer))));
+    }
 
     // terradatum specific: we needed to add this lifecycle hook for middleware that requires 
     // that action be taken sometime after the middleware has been added to the redux store.

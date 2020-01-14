@@ -99,7 +99,7 @@ var _arrayIncludes = function (IS_INCLUDES) {
 };
 
 var _core = createCommonjsModule(function (module) {
-var core = module.exports = { version: '2.6.9' };
+var core = module.exports = { version: '2.6.11' };
 if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 });
 
@@ -1675,11 +1675,11 @@ function Connector(store) {
 
     var finalMapStateToTarget = mapStateToTarget || defaultMapStateToTarget;
 
-    var finalMapDispatchToTarget = isPlainObject_1(mapDispatchToTarget) ? wrapActionCreators(mapDispatchToTarget) : mapDispatchToTarget || defaultMapDispatchToTarget;
+    var finalMapDispatchToTarget = isObject_1(mapDispatchToTarget) && !isFunction_1(mapDispatchToTarget) ? wrapActionCreators(mapDispatchToTarget) : mapDispatchToTarget || defaultMapDispatchToTarget;
 
     invariant_1(isFunction_1(finalMapStateToTarget), 'mapStateToTarget must be a Function. Instead received %s.', finalMapStateToTarget);
 
-    invariant_1(isPlainObject_1(finalMapDispatchToTarget) || isFunction_1(finalMapDispatchToTarget), 'mapDispatchToTarget must be a plain Object or a Function. Instead received %s.', finalMapDispatchToTarget);
+    invariant_1(isObject_1(finalMapDispatchToTarget) || isFunction_1(finalMapDispatchToTarget), 'mapDispatchToTarget must be a plain Object or a Function. Instead received %s.', finalMapDispatchToTarget);
 
     var slice = getStateSlice(store.getState(), finalMapStateToTarget, false);
     var isFactory = isFunction_1(slice);
@@ -2016,6 +2016,7 @@ function debounce(func, wait, options) {
       }
       if (maxing) {
         // Handle invocations in a tight loop.
+        clearTimeout(timerId);
         timerId = setTimeout(timerExpired, wait);
         return invokeFunc(lastCallTime);
       }
@@ -6380,6 +6381,7 @@ function ngReduxProvider() {
   var _initialState = undefined;
   var _reducerIsObject = undefined;
   var _providedStore = undefined;
+  var _storeCreator = undefined;
 
   this.provideStore = function (store) {
     var middlewares = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
@@ -6391,6 +6393,10 @@ function ngReduxProvider() {
     };
     _storeEnhancers = storeEnhancers;
     _middlewares = [].concat(_toConsumableArray(middlewares), [providedStoreMiddleware(store)]);
+  };
+
+  this.createStore = function (storeCreator) {
+    _storeCreator = storeCreator;
   };
 
   this.createStoreWith = function (reducer, middlewares, storeEnhancers, initialState) {
@@ -6442,11 +6448,15 @@ function ngReduxProvider() {
     // digestMiddleware needs to be the last one.
     resolvedMiddleware.push(digestMiddleware($injector.get('$rootScope'), _this.config.debounce));
 
-    // combine middleware into a store enhancer.
-    var middlewares = redux.applyMiddleware.apply(undefined, _toConsumableArray(resolvedMiddleware));
-
-    // compose enhancers with middleware and create store.
-    var store = redux.createStore(_reducer, _initialState, redux.compose.apply(undefined, [middlewares].concat(_toConsumableArray(resolvedStoreEnhancer))));
+    var store = void 0;
+    if (_storeCreator) {
+      store = _storeCreator(resolvedMiddleware, resolvedStoreEnhancer);
+    } else {
+      // combine middleware into a store enhancer.
+      var middlewares = redux.applyMiddleware.apply(undefined, _toConsumableArray(resolvedMiddleware));
+      // compose enhancers with middleware and create store.
+      store = redux.createStore(_reducer, _initialState, redux.compose.apply(undefined, [middlewares].concat(_toConsumableArray(resolvedStoreEnhancer))));
+    }
 
     // terradatum specific: we needed to add this lifecycle hook for middleware that requires 
     // that action be taken sometime after the middleware has been added to the redux store.
